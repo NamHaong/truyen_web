@@ -539,8 +539,11 @@ namespace WebDocTruyen.Controllers
                 return Ok(new List<object>());
             }
 
+            // Không phân biệt hoa thường và dấu (Postgres): ILIKE + unaccent
+            var mau = "%" + keyword.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
             var results = await _context.Truyens
-                .Where(t => t.TenTruyen.Contains(keyword) || (t.TacGia != null && t.TacGia.Contains(keyword)))
+                .Where(t => EF.Functions.ILike(EF.Functions.Unaccent(t.TenTruyen), EF.Functions.Unaccent(mau)) ||
+                            (t.TacGia != null && EF.Functions.ILike(EF.Functions.Unaccent(t.TacGia), EF.Functions.Unaccent(mau))))
                 .OrderByDescending(t => t.LuotXem)
                 .Take(6)
                 .Select(t => new

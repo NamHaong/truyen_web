@@ -174,8 +174,10 @@ namespace WebDocTruyen.Controllers
     if (!string.IsNullOrWhiteSpace(tuKhoa))
     {
         tuKhoa = tuKhoa.Trim();
-        query = query.Where(t => t.TenTruyen.Contains(tuKhoa) || 
-                                (t.TacGia != null && t.TacGia.Contains(tuKhoa)));
+        // Postgres phân biệt hoa thường/dấu: dùng ILIKE + unaccent để "tien" vẫn tìm ra "Tiên"
+        var mau = "%" + tuKhoa.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+        query = query.Where(t => EF.Functions.ILike(EF.Functions.Unaccent(t.TenTruyen), EF.Functions.Unaccent(mau)) ||
+                                (t.TacGia != null && EF.Functions.ILike(EF.Functions.Unaccent(t.TacGia), EF.Functions.Unaccent(mau))));
     }
 
     var danhSachKetQua = await query
