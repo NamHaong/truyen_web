@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Khoa bi mat chi de tren may
+appsettings.Local.json

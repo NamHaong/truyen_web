@@ -7,6 +7,11 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Khóa bí mật (vd Supabase:Key) để trong appsettings.Local.json - file này không đưa lên git.
+// Khi deploy (Render...) đặt biến môi trường Supabase__Key thay cho file này.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddEnvironmentVariables();
+
 // Các store tĩnh (quốc gia, thích truyện, thích bình luận) dùng chung DB Supabase
 StoreDb.Init(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
@@ -37,6 +42,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Đăng ký HttpContextAccessor và Session
 builder.Services.AddHttpContextAccessor();
+
+// Lưu ảnh lên Supabase Storage (dùng chung với app mobile)
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<WebDocTruyen.Services.SupabaseStorageService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebDocTruyen.Models;
+using WebDocTruyen.Services;
 
 namespace WebDocTruyen.Areas.Admin.Controllers
 {
@@ -9,11 +10,13 @@ namespace WebDocTruyen.Areas.Admin.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly SupabaseStorageService _storage;
 
-        public BannerController(AppDbContext context, IWebHostEnvironment env)
+        public BannerController(AppDbContext context, IWebHostEnvironment env, SupabaseStorageService storage)
         {
             _context = context;
             _env = env;
+            _storage = storage;
         }
 
         private bool CheckAdmin()
@@ -46,19 +49,8 @@ namespace WebDocTruyen.Areas.Admin.Controllers
 
         private async Task<string?> SaveBannerFileAsync(IFormFile? fileAnh)
         {
-            if (fileAnh == null || fileAnh.Length == 0)
-                return null;
-
-            var folderPath = Path.Combine(_env.WebRootPath, "uploads", "banners");
-            Directory.CreateDirectory(folderPath);
-
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(fileAnh.FileName)}";
-            var fullPath = Path.Combine(folderPath, fileName);
-
-            using var stream = new FileStream(fullPath, FileMode.Create);
-            await fileAnh.CopyToAsync(stream);
-
-            return "/uploads/banners/" + fileName;
+            // Lưu lên Supabase Storage để web và app dùng chung link ảnh
+            return await _storage.SaveImageAsync(fileAnh, "banners", "uploads/banners");
         }
 
         public IActionResult Index()

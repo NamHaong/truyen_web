@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebDocTruyen.Models;
+using WebDocTruyen.Services;
 
 namespace WebDocTruyen.Areas.Admin.Controllers
 {
@@ -8,10 +9,12 @@ namespace WebDocTruyen.Areas.Admin.Controllers
     public class TruyenManagementController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly SupabaseStorageService _storage;
 
-        public TruyenManagementController(AppDbContext context)
+        public TruyenManagementController(AppDbContext context, SupabaseStorageService storage)
         {
             _context = context;
+            _storage = storage;
         }
 
         private bool CheckAdmin()
@@ -97,15 +100,8 @@ namespace WebDocTruyen.Areas.Admin.Controllers
 
                 if (file != null && file.Length > 0)
                 {
-                    string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/Images");
-                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-                    string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(fileStream);
-                    }
-                    truyen.AnhBia = "/Images/" + uniqueFileName;
+                    // Lưu ảnh bìa lên Supabase Storage (web và app dùng chung link)
+                    truyen.AnhBia = await _storage.SaveImageAsync(file, "covers", "Images");
                 }
                 else
                 {
@@ -189,15 +185,7 @@ namespace WebDocTruyen.Areas.Admin.Controllers
 
                     if (file != null && file.Length > 0)
                     {
-                        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/Images");
-                        if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                        using (var fileStream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(fileStream);
-                        }
-                        existingTruyen.AnhBia = "/Images/" + uniqueFileName;
+                        existingTruyen.AnhBia = await _storage.SaveImageAsync(file, "covers", "Images");
                     }
 
                     existingTruyen.MaTheLoais.Clear();

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebDocTruyen.Models;
+using WebDocTruyen.Services;
 using WebDocTruyen.ViewModels;
 
 namespace WebDocTruyen.Controllers;
@@ -11,9 +12,12 @@ public class AccountController : Controller
     private readonly AppDbContext _context;
     private readonly PasswordHasher<NguoiDung> _passwordHasher = new();
 
-    public AccountController(AppDbContext context)
+    private readonly SupabaseStorageService _storage;
+
+    public AccountController(AppDbContext context, SupabaseStorageService storage)
     {
         _context = context;
+        _storage = storage;
     }
 
     [HttpGet]
@@ -414,19 +418,8 @@ public class AccountController : Controller
         // Cập nhật avatar từ file máy tính hoặc link URL
         if (model.AnhDaiDienFile != null && model.AnhDaiDienFile.Length > 0)
         {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/Images");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-            var extension = Path.GetExtension(model.AnhDaiDienFile.FileName);
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(model.AnhDaiDienFile.FileName);
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await model.AnhDaiDienFile.CopyToAsync(fileStream);
-            }
-
-            user.AnhDaiDien = "/Images/" + uniqueFileName;
+            // Lưu ảnh đại diện lên Supabase Storage (web và app dùng chung link)
+            user.AnhDaiDien = await _storage.SaveImageAsync(model.AnhDaiDienFile, "avatars", "Images");
         }
         else if (!string.IsNullOrWhiteSpace(model.AnhDaiDienUrl))
         {
