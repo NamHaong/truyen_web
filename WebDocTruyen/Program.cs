@@ -12,8 +12,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
 
-// Các store tĩnh (quốc gia, thích truyện, thích bình luận) dùng chung DB Supabase
-StoreDb.Init(builder.Configuration.GetConnectionString("DefaultConnection")!);
+// Render (và các host Docker) báo cổng cần mở qua biến môi trường PORT
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
+
+// Các store tĩnh (quốc gia, thích truyện, thích bình luận) dùng chung DB Supabase.
+// Lỗi kết nối lúc khởi động (vd chưa đặt mật khẩu database) không được làm sập cả web.
+try
+{
+    StoreDb.Init(builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty);
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine("[StoreDb] Không kết nối được database lúc khởi động: " + ex.Message +
+        " -> Kiểm tra biến môi trường ConnectionStrings__DefaultConnection (phải có Password=...).");
+}
 
 // 1. Đổi sang AddControllersWithViews() để hỗ trợ View (.cshtml) và bỏ qua vòng lặp cycle JSON
 builder.Services.AddControllersWithViews()
